@@ -79,7 +79,25 @@ function login($email, $senha) {
 		return array('status' => 500, 'message' => "ERROR", 'result' => 'Usuário e/ou senha inválidos!');
 	}
 
+	$tokenId    = base64_encode(mcrypt_create_iv(32));
+	$issuedAt   = time();
+	$notBefore  = $issuedAt + 10;  //Adding 10 seconds
+	$expire     = $notBefore + 1972000000; // Adding 60 seconds
+	$serverName = 'http://catracaweb.com.br/'; /// set your domain name 
+
 	
+	$data = [
+		'iat'  => $issuedAt,         // Issued at: time when the token was generated
+		'jti'  => $tokenId,          // Json Token Id: an unique identifier for the token
+		'iss'  => $serverName,       // Issuer
+		'nbf'  => $notBefore,        // Not before
+		'exp'  => $expire,           // Expire
+		'data' => $resultUsuario[0] //[                  // Data related to the logged user you can set your required data
+			//'apt'   => $apt, // id from the users table
+			 //'condominio' => $id_condominio, //  name
+			
+				 // ]
+	];
 	$secretKey = SECRET_KEY;
 	/// Here we will transform this array into JWT:
 	$jwt = JWT::encode(
