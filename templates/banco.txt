@@ -1,0 +1,330 @@
+CREATE DATABASE catraca_web;
+use catraca_web;
+
+-- Para os STATUS serão usados as seguintes condições:
+-- 'A' - Ativo
+-- 'I' - Inativo
+
+
+
+CREATE TABLE clientes (
+  cli_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  cli_nome varchar(200) NOT NULL,
+  cli_email varchar(200) NOT NULL UNIQUE,
+  cli_senha varchar(40) NOT NULL,
+  cli_cpf BIGINT(11) UNIQUE,
+  cli_cnpj BIGINT(14) UNIQUE,
+  cli_data DATE NOT NULL,
+  cli_status varchar(1) NOT NULL,
+  cli_date_cadastro DATETIME NOT NULL
+
+) DEFAULT CHARSET=utf8;
+
+
+
+CREATE TABLE cartoes_clientes(
+  card_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  card_digitos varchar(4) NOT NULL,
+  car_token varchar(200) NOT NULL,
+  card_brand varchar(200) NOT NULL UNIQUE,
+  card_date_cadastro DATETIME NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
+
+CREATE TABLE planos (
+  plano_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  plano_desc varchar(200) NOT NULL,
+  plano_valor double NOT NULL,
+  plano_status varchar(1) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
+
+CREATE TABLE recorrencia (
+  recor_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  recor_date DATETIME NOT NULL,
+  plano_id int(11) NOT NULL,
+  recor_valor varchar(200) UNIQUE,
+  recor_status varchar(1) NOT NULL,
+  cli_id int(11) NOT NULL,
+  
+  recor_plano varchar(200) NOT NULL,
+  recor_token varchar(200) NOT NULL,
+  recor_code varchar(200) NOT NULL UNIQUE
+) DEFAULT CHARSET=utf8;
+
+-- Os dados do sistema serão alimentados de acordo com a filial que será carregada na sessão.
+
+CREATE TABLE filiais (
+  filial_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  filial_nome VARCHAR(250) NOT NULL,
+  filial_desc VARCHAR(250) NOT NULL,
+  cli_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE tipo_usuario (
+  tipo_id int(1) NOT NULL PRIMARY KEY,
+  tipo_nome VARCHAR(250) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE usuarios (
+  user_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  user_nome varchar(200) NOT NULL,
+  user_email varchar(200) NOT NULL UNIQUE,
+  user_senha varchar(40) NOT NULL,
+  user_cpf BIGINT(11) UNIQUE,
+  user_data_nasc DATE NOT NULL,
+  tipo_id int(1) NOT NULL,
+  filial_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
+------
+
+
+CREATE TABLE responsaveis (
+  resp_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  resp_nome varchar(200) NOT NULL,
+  resp_email varchar(200) NOT NULL UNIQUE,
+  filial_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE visita_motivo (
+  visita_motivo_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  visita_motivo_desc LONGTEXT NOT NULL
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE visitas (
+  visita_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  visita_chegada DATETIME NOT NULL,
+  visita_saida DATETIME,
+  visita_motivo_id int(11) NOT NULL,
+  visita_responsavel varchar(100) NOT NULL,
+  filial_id int(11) NOT NULL,
+  user_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE visitantes (
+  visitante_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  visitante_nome varchar(200) NOT NULL,
+  visitante_cpf varchar(40) UNIQUE NOT NULL,
+  visitante_rg varchar(200) NOT NULL,
+  visitante_data_nasc DATE,
+  visitante_foto_face varchar(300),
+  visitante_foto_doc varchar(300),
+  user_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE carros_visita (
+  carro_visita_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  carro_visita_placa varchar(10) NOT NULL,
+  carro_visita_modelo varchar(40) NOT NULL,
+  carro_visita_chegada DATETIME NOT NULL,
+  carro_visita_saida DATETIME,
+  visita_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+CREATE TABLE visitante_visita (
+  vivi_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  visita_id INT(11) NOT NULL,
+  visitante_id INT(11) NOT NULL,
+  visitante_visita_chegada DATETIME NOT NULL,
+  visitante_visita_saida DATETIME
+) DEFAULT CHARSET=utf8;
+
+---------------------------INSERT-----------------------------------
+
+
+INSERT INTO clientes (cli_nome, cli_email, cli_senha, cli_cpf, cli_cnpj, cli_data, cli_status, cli_date_cadastro)
+VALUES  ('Cliente Teste', 'rafael.freitas@recifesites.com', SHA1('123'), 10124944469, NULL, '1992-05-22', 'A', NOW());
+
+
+
+INSERT INTO planos (plano_desc, plano_valor, plano_status)
+VALUES  ('Trial', 0,'A'),
+        ('Basic', 49.90, 'A'),
+        ('Eficiente', 79.90, 'A'),
+        ('Pro', 99.90, 'A');
+
+
+
+INSERT INTO filiais (filial_nome, filial_desc)
+VALUES  ('Unidade Recife', 'Unidade Recife');
+
+INSERT INTO tipo_usuario (tipo_id, tipo_nome)
+VALUES  (1, 'Diretoria'),
+        (2, 'Administrativo'),
+        (3, 'Portaria');
+
+INSERT INTO usuarios (user_nome, user_email, user_senha, user_cpf, user_data_nasc, tipo_id, filial_id)
+VALUES  ('Usuário Admin', 'rafael.vasconcelos@outlook.com', SHA1('123'), 10124944460,  '2000-01-01', 2, 1),
+        ('Usuário Portaria', 'rafaelfreitas.servtec@gmail.com', SHA1('123'), 10124944469, '2000-01-01', 3, 1);
+
+INSERT INTO visita_motivo (visita_motivo_desc)
+VALUES  ('Prestador de serviço'),
+        ('Funcionário terceiro'),
+        ('Funcionário visitante'),
+        ('Carga/Descarga');
+
+INSERT INTO visitantes (visitante_nome, visitante_cpf, visitante_rg, visitante_data_nasc, visitante_foto_face, visitante_foto_doc, user_id)
+VALUES  ('Visitante 1' , '000.000.000-01' , 10000001 , '2000-01-01', 'face.png', 'doc.jpg', 1),
+        ('Visitante 2' , '000.000.000-02' , 10000002 , '2000-02-02', 'face.png', 'doc.jpg', 1),
+        ('Visitante 3' , '000.000.000-03' , 10000003 , '2000-03-03', 'face.png', 'doc.jpg', 1),
+        ('Visitante 4' , '000.000.000-04' , 10000004 , '2000-04-04', 'face.png', 'doc.jpg', 1),
+        ('Visitante 5' , '000.000.000-05' , 10000005 , '2000-05-05', 'face.png', 'doc.jpg', 1),
+        ('Visitante 6' , '000.000.000-06' , 10000006 , '2000-06-06', 'face.png', 'doc.jpg', 1),
+        ('Visitante 7' , '000.000.000-07' , 10000007 , '2000-07-07', 'face.png', 'doc.jpg', 1),
+        ('Visitante 8' , '000.000.000-08' , 10000008 , '2000-08-08', 'face.png', 'doc.jpg', 1),
+        ('Visitante 9' , '000.000.000-09' , 10000009 , '2000-09-09', 'face.png', 'doc.jpg', 1),
+        ('Visitante 10', '000.000.000-10' , 10000010 , '2000-10-10', 'face.png', 'doc.jpg', 1),
+        ('Visitante 11', '000.000.000-11' , 10000011 , '2000-01-01', 'face.png', 'doc.jpg', 2),
+        ('Visitante 12', '000.000.000-12' , 10000012 , '2000-02-02', 'face.png', 'doc.jpg', 2),
+        ('Visitante 13', '000.000.000-13' , 10000013 , '2000-03-03', 'face.png', 'doc.jpg', 2),
+        ('Visitante 14', '000.000.000-14' , 10000014 , '2000-04-04', 'face.png', 'doc.jpg', 2),
+        ('Visitante 15', '000.000.000-15' , 10000015 , '2000-05-05', 'face.png', 'doc.jpg', 2),
+        ('Visitante 16', '000.000.000-16' , 10000016 , '2000-06-06', 'face.png', 'doc.jpg', 2),
+        ('Visitante 17', '000.000.000-17' , 10000017 , '2000-07-07', 'face.png', 'doc.jpg', 2),
+        ('Visitante 18', '000.000.000-18' , 10000018 , '2000-08-08', 'face.png', 'doc.jpg', 2),
+        ('Visitante 19', '000.000.000-19' , 10000019 , '2000-09-09', 'face.png', 'doc.jpg', 2),
+        ('Visitante 20', '000.000.000-20' , 10000020 , '2000-10-10', 'face.png', 'doc.jpg', 2);
+
+
+
+INSERT INTO visitas (visita_chegada, visita_saida, visita_motivo_id, visita_responsavel, filial_id, user_id)
+VALUES  
+        ('2017-09-02 07:30:00' , '2017-09-02 10:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-09-02 08:30:00' , '2017-09-02 11:00:00' , 1, 'Rafael', 1, 2),
+
+        ('2017-08-30 05:10:00' , '2017-08-30 11:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 04:20:00' , '2017-08-30 12:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 07:30:00' , '2017-08-30 13:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:40:00' , '2017-08-30 14:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 09:50:00' , '2017-08-30 15:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 07:40:00' , '2017-08-30 16:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 17:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 18:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 19:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 20:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 12:00:00' , 1, 'Rafael', 1, 2),
+        ('2017-08-30 08:30:00' , '2017-08-30 10:00:00' , 1, 'Rafael', 1, 2),
+        
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 2, 'Rafael', 1, 2),
+        ('2017-07-30 08:30:00' , '2017-07-30 10:00:00' , 3, 'Rafael', 1, 2),
+        
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 4, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 4, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 4, 'Rafael', 1, 2),
+        ('2017-06-30 08:30:00' , '2017-06-30 10:00:00' , 4, 'Rafael', 1, 2),
+
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 4, 'Rafael', 1, 2),
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 3, 'Rafael', 1, 2),
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 4, 'Rafael', 1, 2),
+        ('2017-05-30 08:30:00' , '2017-05-30 10:00:00' , 4, 'Rafael', 1, 2);
+
+
+INSERT INTO visitante_visita (visita_id, visitante_id, visitante_visita_chegada, visitante_visita_saida)
+VALUES  
+
+        (1, 1, '2017-09-02 07:30:00' , '2017-09-02 10:00:00'),
+        (1, 2, '2017-09-02 07:30:00' , '2017-09-02 10:00:00'),
+        (1, 3, '2017-09-02 07:30:00' , '2017-09-02 10:00:00'),
+        (2, 4, '2017-09-02 08:30:00' , '2017-09-02 11:00:00'),
+        (2, 5, '2017-09-02 08:30:00' , '2017-09-02 11:00:00'),
+        (2, 6, '2017-09-02 08:30:00' , '2017-09-02 11:00:00'),
+
+        (3, 1, '2017-08-30 05:10:00' , '2017-08-30 11:00:00'),
+        (3, 12, '2017-08-30 05:10:00' , '2017-08-30 11:00:00'),
+        (4, 13, '2017-08-30 04:20:00' , '2017-08-30 12:00:00'),
+        (5, 14, '2017-08-30 07:30:00' , '2017-08-30 13:00:00'),
+        (6, 15, '2017-08-30 08:40:00' , '2017-08-30 14:00:00'),
+        (7, 16, '2017-08-30 09:50:00' , '2017-08-30 15:00:00'),
+        (8, 17, '2017-08-30 07:40:00' , '2017-08-30 16:00:00'),
+        (9, 18, '2017-08-30 08:30:00' , '2017-08-30 17:00:00'),
+        (10, 3, '2017-08-30 08:30:00' , '2017-08-30 18:00:00'),
+        (11, 4, '2017-08-30 08:30:00' , '2017-08-30 19:00:00'),
+        (12, 5, '2017-08-30 08:30:00' , '2017-08-30 20:00:00'),
+        (13, 6, '2017-08-30 08:30:00' , '2017-08-30 12:00:00'),
+        (14, 7, '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        
+        (15, 1, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (16, 2, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (17, 3, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (18, 4, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (19, 5, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (20, 6, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (21, 7, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (22, 8, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (23, 9, '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        
+        (24, 10, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (25, 11, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (26, 12, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (27, 13, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (28, 14, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (29, 15, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (30, 16, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (31, 17, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (32, 18, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (33, 19, '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+
+        (34, 1, '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (35, 2, '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (36, 3, '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (37, 4, '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (38, 5, '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (39, 6, '2017-05-30 08:30:00' , '2017-05-30 10:00:00');
+
+
+
+INSERT INTO carros_visita (visita_id, carro_visita_placa, carro_visita_chegada, carro_visita_saida)
+VALUES  
+        (1, 'NXW-0001', '2017-09-02 08:30:00' , '2017-09-02 10:00:00'),
+        (1, 'NXW-0002', '2017-09-02 08:30:00' , '2017-09-02 10:00:00'),
+        (2, 'NXW-0001', '2017-09-02 08:30:00' , '2017-09-02 10:00:00'),
+        (2, 'NXW-0002', '2017-09-02 08:30:00' , '2017-09-02 10:00:00'),
+
+        (3, 'NXW-0001', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (7, 'NXW-0002', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (8, 'NXW-0003', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (9, 'NXW-0004', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (10, 'NXW-0001', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (10, 'NXW-0002', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        (11, 'NXW-0003', '2017-08-30 08:30:00' , '2017-08-30 10:00:00'),
+        
+        (13, 'NXW-0001', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (14, 'NXW-0001', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (15, 'NXW-0001', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (16, 'NXW-0001', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (21, 'NXW-0001', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        (21, 'NXW-0002', '2017-07-30 08:30:00' , '2017-07-30 10:00:00'),
+        
+        (22, 'NXW-0001', '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (23, 'NXW-0001', '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+        (24, 'NXW-0001', '2017-06-30 08:30:00' , '2017-06-30 10:00:00'),
+
+        (32, 'NXW-0001', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (32, 'NXW-0002', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (32, 'NXW-0003', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (33, 'NXW-0004', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (34, 'NXW-0005', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (35, 'NXW-0006', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (36, 'NXW-0007', '2017-05-30 08:30:00' , '2017-05-30 10:00:00'),
+        (37, 'NXW-0008', '2017-05-30 08:30:00' , '2017-05-30 10:00:00');

@@ -2,7 +2,10 @@
 date_default_timezone_set('America/Sao_Paulo');
 header("Content-Type: application/json");
 require 'lib/vendor/autoload.php';
-require 'lib/vendor/phpmailer/phpmailer/PHPMailerAutoload.php';
+
+//require 'lib/vendor/phpmailer/phpmailer/PHPMailerAutoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -66,8 +69,8 @@ function login($email, $senha) {
 			FROM usuarios WHERE user_email = ? AND user_senha = SHA1(?) LIMIT 1";
 	
 	$stmt = getConn()->prepare($sql);
-	$stmt->bindParam(1, $dados['loginAt'] , PDO::PARAM_INT);
-	$stmt->bindParam(2, $dados['idAt'] , PDO::PARAM_INT);
+	$stmt->bindParam(1, $email , PDO::PARAM_STR);
+	$stmt->bindParam(2, $senha , PDO::PARAM_STR);
 	$stmt->execute();
 	$countLogin = $stmt->rowCount();
 	$resultUsuario = $stmt->fetchAll(PDO::FETCH_OBJ);
