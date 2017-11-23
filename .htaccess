@@ -1,11 +1,4 @@
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-
-
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-
-  RewriteRule ^api/?$ /index.php [NC,L]
-  
-</IfModule>
+RewriteRule ^(.*)$ /index.php?/$1 [L]
