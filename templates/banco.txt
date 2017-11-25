@@ -118,6 +118,15 @@ CREATE TABLE visitantes (
   user_id int(11) NOT NULL
 ) DEFAULT CHARSET=utf8;
 
+CREATE TABLE veiculos (
+  veic_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
+  veic_placa varchar(10) NOT NULL,
+  veic_modelo varchar(40) UNIQUE NOT NULL,
+  veic_foto longtext NOT NULL,
+  user_id int(11) NOT NULL
+) DEFAULT CHARSET=utf8;
+
+
 CREATE TABLE carros_visita (
   carro_visita_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
   carro_visita_placa varchar(10) NOT NULL,
