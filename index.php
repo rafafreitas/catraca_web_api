@@ -65,7 +65,8 @@ function login($email, $senha) {
 
 	//generateToken($sql);
 
-	$sql = "SELECT user_id , user_email, user_nome, user_data_nasc, tipo_id, filial_id 
+	$sql = "SELECT user_id ,user_nome, user_email, user_cpf, DATE_FORMAT(user_data_nasc, '%d/%m/%Y') as dateFormat, 
+			user_data_nasc, tipo_id, filial_id 
 			FROM usuarios WHERE user_email = ? AND user_senha = SHA1(?) LIMIT 1";
 	
 	$stmt = getConn()->prepare($sql);
@@ -78,6 +79,9 @@ function login($email, $senha) {
 	if ($countLogin != 1) {
 		return array('status' => 500, 'message' => "ERROR", 'result' => 'Usuário e/ou senha inválidos!');
 	}
+
+
+	$resultUsuario[0]->user_cpf = mask($resultUsuario[0]->user_cpf,'###.###.###-##');
 
 	$tokenId    = base64_encode(mcrypt_create_iv(32));
 	$issuedAt   = time();
@@ -301,6 +305,23 @@ function sendMail($html, $email, $nome) {
 	$mail->Subject  = "Catraca Web APP"; // Assunto da mensagem
 	$mail->Body = $html;
 	$mail->Send();
+}
+
+function mask($val, $mask){
+	$maskared = '';
+	$k = 0;
+	for($i = 0; $i<=strlen($mask)-1; $i++) {
+	  if($mask[$i] == '#') {
+	    if(isset($val[$k])) {
+	    $maskared .= $val[$k++];
+	    }
+	  } else{
+	    if(isset($mask[$i])) {
+	      $maskared .= $mask[$i];
+	    }
+	  }
+	}
+	return $maskared;
 }
 
 
