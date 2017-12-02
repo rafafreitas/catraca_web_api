@@ -82,9 +82,6 @@ CREATE TABLE usuarios (
 ) DEFAULT CHARSET=utf8;
 
 
-------
-
-
 CREATE TABLE responsaveis (
   resp_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
   resp_nome varchar(200) NOT NULL,
@@ -92,10 +89,13 @@ CREATE TABLE responsaveis (
   filial_id int(11) NOT NULL
 ) DEFAULT CHARSET=utf8;
 
+
 CREATE TABLE visita_motivo (
   visita_motivo_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
   visita_motivo_desc LONGTEXT NOT NULL
 ) DEFAULT CHARSET=utf8;
+
+------
 
 CREATE TABLE visitas (
   visita_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -177,6 +177,13 @@ VALUES  ('Prestador de serviço'),
         ('Funcionário terceiro'),
         ('Funcionário visitante'),
         ('Carga/Descarga');
+
+INSERT INTO `responsaveis`(`resp_nome`, `resp_email`, `filial_id`)
+VALUES  ('Resp01', 'resp01@email.com', 1),
+        ('Resp02', 'resp02@email.com', 1),
+        ('Resp03', 'resp03@email.com', 1),
+        ('Resp04', 'resp04@email.com', 1),
+        ('Resp05', 'resp05@email.com', 1);
 
 INSERT INTO visitantes (visitante_nome, visitante_cpf, visitante_rg, visitante_data_nasc, visitante_foto_face, visitante_foto_doc, user_id)
 VALUES  ('Visitante 1' , '000.000.000-01' , 10000001 , '2000-01-01', 'face.png', 'doc.jpg', 1),

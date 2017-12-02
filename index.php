@@ -65,6 +65,7 @@ function login($email, $senha) {
 
 	//generateToken($sql);
 
+	//Pegar dados do Usuário
 	$sql = "SELECT user_id ,user_nome, user_email, user_cpf, DATE_FORMAT(user_data_nasc, '%d/%m/%Y') as dateFormat, 
 			user_data_nasc, tipo_id, filial_id 
 			FROM usuarios WHERE user_email = ? AND user_senha = SHA1(?) LIMIT 1";
@@ -83,6 +84,59 @@ function login($email, $senha) {
 
 	$resultUsuario[0]->user_cpf = mask($resultUsuario[0]->user_cpf,'###.###.###-##');
 
+
+	//Pegar dados dos Responsáveis
+	$sql = "SELECT resp_id ,resp_nome FROM responsaveis 
+			WHERE filial_id = ?";
+	
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $resultUsuario[0]->filial_id , PDO::PARAM_STR);
+	$stmt->execute();
+	$resultResponsaveis = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+	
+
+	//Pegar Informações Gerais
+	//Quantidade de Visitantes
+	$sql = "select count(*) as quantidade 
+			from visitante_visita vivi 
+			inner join visitas vis 
+			on vivi.visita_id = vis.visita_id
+			where vis.filial_id = ? 
+			AND vivi.visitante_visita_saida is null";
+	
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $resultUsuario[0]->filial_id , PDO::PARAM_STR);
+	$stmt->execute();
+	$visitantes_empresa = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+
+	//Quantidade de Veículos
+	$sql = "select count(*) as quantidade 
+			from carros_visita cavi 
+			inner join visitas vis 
+			on cavi.visita_id = vis.visita_id
+			where vis.filial_id = ? 
+			AND cavi.carro_visita_saida is null";
+	
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $resultUsuario[0]->filial_id , PDO::PARAM_STR);
+	$stmt->execute();
+	$veiculos_empresa = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+	
+	$latitude  = "-8.1515521";
+	$longitude = "-34.9199225";
+
+	$uteis = array(
+		'qtd_visitantes' => $visitantes_empresa[0]->quantidade,
+		'qtd_veiculos'   => $veiculos_empresa[0]->quantidade,
+		'latitude'       => $latitude,
+		'longitude'      => $longitude,
+	);
+
+
+	//Gerar TOKEN
 	$tokenId    = base64_encode(mcrypt_create_iv(32));
 	$issuedAt   = time();
 	$notBefore  = $issuedAt + 10;  //Adding 10 seconds
@@ -112,10 +166,12 @@ function login($email, $senha) {
 	$unencodedArray = ['token'=> $jwt];
 
 	$res = array(
-		'status' => 200, 
-		'message' => "SUCCESS", 
-		'usuario' => $resultUsuario[0], 
-		'token'=> $jwt
+		'status' 		=> 200, 
+		'message' 		=> "SUCCESS", 
+		'usuario' 		=> $resultUsuario[0], 
+		'responsaveis' 	=> $resultResponsaveis, 
+		'uteis' 		=> $uteis, 
+		'token'			=> $jwt
 	);
 	
 	return $res;
