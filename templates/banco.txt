@@ -27,7 +27,9 @@ CREATE TABLE cartoes_clientes(
   card_digitos varchar(4) NOT NULL,
   car_token varchar(200) NOT NULL,
   card_brand varchar(200) NOT NULL UNIQUE,
-  card_date_cadastro DATETIME NOT NULL
+  card_date_cadastro DATETIME NOT NULL, 
+  cli_status varchar(1) NOT NULL,
+  cli_id int(11) NOT NULL
 ) DEFAULT CHARSET=utf8;
 
 
@@ -75,7 +77,7 @@ CREATE TABLE usuarios (
   user_nome varchar(200) NOT NULL,
   user_email varchar(200) NOT NULL UNIQUE,
   user_senha varchar(40) NOT NULL,
-  user_cpf BIGINT(11) UNIQUE,
+  user_cpf varchar(11) UNIQUE,
   user_data_nasc DATE NOT NULL,
   tipo_id int(1) NOT NULL,
   filial_id int(11) NOT NULL
@@ -92,7 +94,8 @@ CREATE TABLE responsaveis (
 
 CREATE TABLE visita_motivo (
   visita_motivo_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
-  visita_motivo_desc LONGTEXT NOT NULL
+  visita_motivo_desc LONGTEXT NOT NULL,
+  filial_id int(11) NOT NULL
 ) DEFAULT CHARSET=utf8;
 
 ------
@@ -172,11 +175,11 @@ INSERT INTO usuarios (user_nome, user_email, user_senha, user_cpf, user_data_nas
 VALUES  ('Usuário Admin', 'rafael.vasconcelos@outlook.com', SHA1('123'), 10124944460,  '2000-01-01', 2, 1),
         ('Usuário Portaria', 'rafaelfreitas.servtec@gmail.com', SHA1('123'), 10124944469, '2000-01-01', 3, 1);
 
-INSERT INTO visita_motivo (visita_motivo_desc)
-VALUES  ('Prestador de serviço'),
-        ('Funcionário terceiro'),
-        ('Funcionário visitante'),
-        ('Carga/Descarga');
+INSERT INTO visita_motivo (visita_motivo_desc, filial_id)
+VALUES  ('Prestador de serviço', 1),
+        ('Funcionário terceiro', 1),
+        ('Funcionário visitante', 1),
+        ('Carga/Descarga', 1);
 
 INSERT INTO `responsaveis`(`resp_nome`, `resp_email`, `filial_id`)
 VALUES  ('Resp01', 'resp01@email.com', 1),

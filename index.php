@@ -41,8 +41,8 @@ $app->post('/usuario/login', function(Request $request, Response $response, $arg
 		die;
 	}*/
 	
-	$email = trim($data["email"]);
-	$senha = trim($data["senha"]);
+	$email = trim($data["user_email"]);
+	$senha = trim($data["user_senha"]);
 
 	if ($email == "") {
 		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
@@ -66,9 +66,9 @@ function login($email, $senha) {
 	//generateToken($sql);
 
 	//Pegar dados do Usuário
-	$sql = "SELECT user_id ,user_nome, user_email, user_cpf, DATE_FORMAT(user_data_nasc, '%d/%m/%Y') as dateFormat, 
+	$sql = "SELECT user_id ,user_nome, user_email, user_senha, user_cpf, DATE_FORMAT(user_data_nasc, '%d/%m/%Y') as dateFormat, 
 			user_data_nasc, tipo_id, filial_id 
-			FROM usuarios WHERE user_email = ? AND user_senha = SHA1(?) LIMIT 1";
+			FROM usuarios WHERE user_email = ? AND user_senha = ? LIMIT 1";
 	
 	$stmt = getConn()->prepare($sql);
 	$stmt->bindParam(1, $email , PDO::PARAM_STR);
@@ -81,9 +81,7 @@ function login($email, $senha) {
 		return array('status' => 500, 'message' => "ERROR", 'result' => 'Usuário e/ou senha inválidos!');
 	}
 
-
 	$resultUsuario[0]->user_cpf = mask($resultUsuario[0]->user_cpf,'###.###.###-##');
-
 
 	//Pegar dados dos Responsáveis
 	$sql = "SELECT resp_id ,resp_nome FROM responsaveis 
@@ -94,6 +92,14 @@ function login($email, $senha) {
 	$stmt->execute();
 	$resultResponsaveis = $stmt->fetchAll(PDO::FETCH_OBJ);
 
+	//Pegar Motivos das Visitas
+	$sql = "SELECT visita_motivo_id ,visita_motivo_desc FROM visita_motivo 
+			WHERE filial_id = ?";
+	
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $resultUsuario[0]->filial_id , PDO::PARAM_STR);
+	$stmt->execute();
+	$resultMotivos = $stmt->fetchAll(PDO::FETCH_OBJ);
 	
 
 	//Pegar Informações Gerais
@@ -170,6 +176,7 @@ function login($email, $senha) {
 		'message' 		=> "SUCCESS", 
 		'usuario' 		=> $resultUsuario[0], 
 		'responsaveis' 	=> $resultResponsaveis, 
+		'motivos'	 	=> $resultMotivos, 
 		'uteis' 		=> $uteis, 
 		'token'			=> $jwt
 	);
@@ -185,17 +192,22 @@ $app->post('/usuario/alterar', function(Request $request, Response $response, $a
 		return $response->withJson($auth, $auth[status]);
 		die;
 	}
+	
+	// var_dump($auth["token"]->data->user_senha);
+	// die;
 
-	echo "teste";
+	$id = trim($data["user_id"]);
+	$nome = trim($data["user_nome"]);
+	$email = trim($data["user_email"]);
+	$cpf = trim($data["user_cpf"]);
+	$dataNascimento = trim($data["user_data_nasc"]);
 
-	var_dump($auth);
-	die;
+	$cpf = str_replace('-', '' , $cpf);
+	$cpf = str_replace('.', '' , $cpf);
 
-	$id = trim($data["id"]);
-	$nome = trim($data["nome"]);
-	$email = trim($data["email"]);
-	$cpf = trim($data["cpf"]);
-	$dataNascimento = trim($data["data_nascimento"]);
+	$data = explode("/", $dataNascimento);
+	$dataNascimento = $data[2]."-".$data[1]."-".$data[0];
+	
 
 	if ($nome == "") {
 		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Nome não informado!');
@@ -222,7 +234,7 @@ $app->post('/usuario/alterar', function(Request $request, Response $response, $a
 	}
 
 	$sql = "UPDATE 
-			usuario
+			usuarios
 			SET  user_nome = ?,
 				 user_email = ?,
 				 user_cpf = ?,
@@ -231,13 +243,14 @@ $app->post('/usuario/alterar', function(Request $request, Response $response, $a
 
 	$stmt = getConn()->prepare($sql);
 
-	$stmt->bindParam(1, $nome);
-	$stmt->bindParam(2, $email);
-	$stmt->bindParam(3, $cpf);
-	$stmt->bindParam(4, $dataNascimento);
-	$stmt->bindParam(5, $id);
+	$stmt->bindParam(1, $nome , PDO::PARAM_STR);
+	$stmt->bindParam(2, $email , PDO::PARAM_STR);
+	$stmt->bindParam(3, $cpf , PDO::PARAM_STR);
+	$stmt->bindParam(4, $dataNascimento , PDO::PARAM_STR);
+	$stmt->bindParam(5, $id , PDO::PARAM_INT);
 
 	if ($stmt->execute()) {
+		$senha = $auth["token"]->data->user_senha;
 		$res = login($email, $senha);
 		return $response->withJson($res, $res[status]);
 		die;		
@@ -294,7 +307,7 @@ function auth($request) {
 	$authorization = $request->getHeaderLine("Authorization");
 	
 	if (trim($authorization) == "") {
-		return array('status' => 500, 'message' => 'Token não informado');
+		return array('status' => 500, 'message' => 'ERROR', 'result' => 'Token não informado');
 	} else {
 		try {
 			$token = JWT::decode($authorization, SECRET_KEY, array('HS256'));
