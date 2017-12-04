@@ -61,6 +61,175 @@ $app->post('/usuario/login', function(Request $request, Response $response, $arg
 });
 
 
+$app->post('/usuario/alterar', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+	if($auth[status] != 200){
+		return $response->withJson($auth, $auth[status]);
+		die;
+	}
+	
+	// var_dump($auth["token"]->data->user_senha);
+	// die;
+
+	$id = trim($data["user_id"]);
+	$nome = trim($data["user_nome"]);
+	$email = trim($data["user_email"]);
+	$cpf = trim($data["user_cpf"]);
+	$dataNascimento = trim($data["user_data_nasc"]);
+
+	$cpf = str_replace('-', '' , $cpf);
+	$cpf = str_replace('.', '' , $cpf);
+
+	$data = explode("/", $dataNascimento);
+	$dataNascimento = $data[2]."-".$data[1]."-".$data[0];
+	
+
+	if ($nome == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Nome não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	
+	if ($cpf == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'CPF não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	if ($email == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	if ($dataNascimento == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Data de nascimento não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$sql = "UPDATE 
+			usuarios
+			SET  user_nome = ?,
+				 user_email = ?,
+				 user_cpf = ?,
+				 user_data_nasc = ?
+			WHERE user_id = ?";
+
+	$stmt = getConn()->prepare($sql);
+
+	$stmt->bindParam(1, $nome , PDO::PARAM_STR);
+	$stmt->bindParam(2, $email , PDO::PARAM_STR);
+	$stmt->bindParam(3, $cpf , PDO::PARAM_STR);
+	$stmt->bindParam(4, $dataNascimento , PDO::PARAM_STR);
+	$stmt->bindParam(5, $id , PDO::PARAM_INT);
+
+	if ($stmt->execute()) {
+		$senha = $auth["token"]->data->user_senha;
+		$res = login($email, $senha);
+		return $response->withJson($res, $res[status]);
+		die;		
+	} else {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível atualizar seus dados, tente novamente por favor!');
+		return $response->withJson($res, $res[status]);
+		die;
+	}
+
+});
+
+
+$app->post('/usuario/recupera_senha', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+
+	$email = trim($data["email"]);
+	$data = trim($data["data_nascimento"]);
+
+	if ($email == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	if ($data == "") {
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Data de Nascimeto não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$sql = "SELECT * FROM usuario WHERE email_usu = '".$email."'";
+	
+	$stmt = getConn()->prepare($sql);
+	$stmt->execute();
+
+	while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		$html = '<img src=""/>
+			<h3>Solicita&ccedil;&atilde;o de Senha</h3>
+			<p>
+			Sua senha é: <b>'.$row["senha_usu"].'</b>
+			</p>';
+
+		sendMail($html, $row["email_usu"], $row["nome_usu"]);
+	}
+
+	$res = array('status' => 200, 'message' => "SUCCESS", 'result' => "Senha enviada para o e-mail informado!");
+	return $response->withJson($res, $res[status]);
+	die;
+
+});
+
+
+$app->post('/veiculo/consulta', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+	if($auth[status] != 200){
+		return $response->withJson($auth, $auth[status]);
+		die;
+	}
+
+	$placa = trim($data["veic_placa"]);
+
+	if ($placa == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'placa não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$placa = str_replace('-', '' , $placa);
+
+	$sql = "SELECT * FROM veiculos WHERE veic_placa = ? LIMIT 1;";
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $placa , PDO::PARAM_STR);
+	$stmt->execute();
+	$count = $stmt->rowCount();
+	$resultVeiculo = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+		var_dump($resultVeiculo);
+		die;
+	if ($count == 1) {
+		$email = $auth["token"]->data->user_senha;
+		$senha = $auth["token"]->data->user_email;
+		$res = login($email, $senha);
+
+		$res = array(
+			'status' => 200, 
+			'message' => "SUCCESS", 
+			'veiculo' => $resultVeiculo[0],
+			'gerais' => $resultVeiculo[0],
+
+		);
+		return $response->withJson($res, $res[status]);
+		die;		
+	} else {
+		$res = array('status' => 204, 'message' => "SUCCESS", 'result' => 'Não foi encontrado veículo com esta placa!');
+		return $response->withJson($res, $res[status]);
+		die;
+	}
+
+});
+
+
 function login($email, $senha) {
 
 	//generateToken($sql);
@@ -183,124 +352,6 @@ function login($email, $senha) {
 	
 	return $res;
 }
-
-
-$app->post('/usuario/alterar', function(Request $request, Response $response, $args) {
-	$data = $request->getParsedBody();
-	$auth = auth($request);
-	if($auth[status] != 200){
-		return $response->withJson($auth, $auth[status]);
-		die;
-	}
-	
-	// var_dump($auth["token"]->data->user_senha);
-	// die;
-
-	$id = trim($data["user_id"]);
-	$nome = trim($data["user_nome"]);
-	$email = trim($data["user_email"]);
-	$cpf = trim($data["user_cpf"]);
-	$dataNascimento = trim($data["user_data_nasc"]);
-
-	$cpf = str_replace('-', '' , $cpf);
-	$cpf = str_replace('.', '' , $cpf);
-
-	$data = explode("/", $dataNascimento);
-	$dataNascimento = $data[2]."-".$data[1]."-".$data[0];
-	
-
-	if ($nome == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Nome não informado!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-	
-	if ($cpf == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'CPF não informado!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-
-	if ($email == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-
-	if ($dataNascimento == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Data de nascimento não informada!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-
-	$sql = "UPDATE 
-			usuarios
-			SET  user_nome = ?,
-				 user_email = ?,
-				 user_cpf = ?,
-				 user_data_nasc = ?
-			WHERE user_id = ?";
-
-	$stmt = getConn()->prepare($sql);
-
-	$stmt->bindParam(1, $nome , PDO::PARAM_STR);
-	$stmt->bindParam(2, $email , PDO::PARAM_STR);
-	$stmt->bindParam(3, $cpf , PDO::PARAM_STR);
-	$stmt->bindParam(4, $dataNascimento , PDO::PARAM_STR);
-	$stmt->bindParam(5, $id , PDO::PARAM_INT);
-
-	if ($stmt->execute()) {
-		$senha = $auth["token"]->data->user_senha;
-		$res = login($email, $senha);
-		return $response->withJson($res, $res[status]);
-		die;		
-	} else {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível atualizar seus dados, tente novamente por favor!');
-		return $response->withJson($res, $res[status]);
-		die;
-	}
-
-});
-
-$app->post('/usuario/recupera_senha', function(Request $request, Response $response, $args) {
-	$data = $request->getParsedBody();
-	$auth = auth($request);
-
-	$email = trim($data["email"]);
-	$data = trim($data["data_nascimento"]);
-
-	if ($email == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-
-	if ($data == "") {
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Data de Nascimeto não informado!');
-		return $response->withJson($res, $res[status]);
-		die;	
-	}
-
-	$sql = "SELECT * FROM usuario WHERE email_usu = '".$email."'";
-	
-	$stmt = getConn()->prepare($sql);
-	$stmt->execute();
-
-	while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-		$html = '<img src=""/>
-			<h3>Solicita&ccedil;&atilde;o de Senha</h3>
-			<p>
-			Sua senha é: <b>'.$row["senha_usu"].'</b>
-			</p>';
-
-		sendMail($html, $row["email_usu"], $row["nome_usu"]);
-	}
-
-	$res = array('status' => 200, 'message' => "SUCCESS", 'result' => "Senha enviada para o e-mail informado!");
-	return $response->withJson($res, $res[status]);
-	die;
-
-});
 
 
 function auth($request) {

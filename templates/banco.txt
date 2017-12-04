@@ -132,10 +132,9 @@ CREATE TABLE veiculos (
 
 CREATE TABLE carros_visita (
   carro_visita_id int(11) AUTO_INCREMENT NOT NULL PRIMARY KEY,
-  carro_visita_placa varchar(10) NOT NULL,
-  carro_visita_modelo varchar(40) NOT NULL,
   carro_visita_chegada DATETIME NOT NULL,
   carro_visita_saida DATETIME,
+  veiculo_id int(11) NOT NULL,
   visita_id int(11) NOT NULL
 ) DEFAULT CHARSET=utf8;
 
