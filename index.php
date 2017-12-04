@@ -204,26 +204,115 @@ $app->post('/veiculo/consulta', function(Request $request, Response $response, $
 	$stmt->execute();
 	$count = $stmt->rowCount();
 	$resultVeiculo = $stmt->fetchAll(PDO::FETCH_OBJ);
+	
 
-		var_dump($resultVeiculo);
-		die;
 	if ($count == 1) {
-		$email = $auth["token"]->data->user_senha;
-		$senha = $auth["token"]->data->user_email;
-		$res = login($email, $senha);
+		$email = $auth["token"]->data->user_email;
+		$senha = $auth["token"]->data->user_senha;
+		$newData = login($email, $senha);
 
-		$res = array(
-			'status' => 200, 
-			'message' => "SUCCESS", 
-			'veiculo' => $resultVeiculo[0],
-			'gerais' => $resultVeiculo[0],
+		if ($newData['status'] == 200 && $newData['message'] == 'SUCCESS') {
+			unset($newData['status']);
+			unset($newData['message']);
+			$res = array(
+				'status' => 200, 
+				'message' => "SUCCESS", 
+				'veiculo' => $resultVeiculo[0],
+				'gerais' => $newData
+			);
+			return $response->withJson($res, $res[status]);
+			die;		
+		}else{
 
-		);
+			$res = array('status' => 401, 'message' => 'Acesso não autorizado');
+			return $response->withJson($res, $res[status]);
+			die;
+
+		}
+
+
+	} elseif ($count == 0) {
+		# code...
+		$res = array('status' => 204, 'message' => "NOTFOUND", 'result' => 'Não foi encontrado veículo com esta placa!');
+		return $response->withJson($res, 200);
+		die;
+	}
+
+});
+
+
+$app->post('/veiculo/cadastro', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+	if($auth[status] != 200){
+		return $response->withJson($auth, $auth[status]);
+		die;
+	}
+	$id = trim($auth["token"]->data->user_id);
+	$placa = trim($data["veic_placa"]);
+	$modelo = trim($data["veic_modelo"]);
+	$foto = trim($data["veic_foto"]);
+
+
+	$placa = str_replace('-', '' , $placa);
+
+	if ($placa == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Placa não informada!');
 		return $response->withJson($res, $res[status]);
-		die;		
-	} else {
-		$res = array('status' => 204, 'message' => "SUCCESS", 'result' => 'Não foi encontrado veículo com esta placa!');
+		die;	
+	}
+	if ($modelo == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Modelo não informado!');
 		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($foto == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Foto não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$sql = "INSERT INTO veiculos (veic_placa, veic_modelo, veic_foto, user_id)
+			VALUES (?, ?, ?, ?)";
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $placa , PDO::PARAM_STR);
+	$stmt->bindParam(2, $modelo , PDO::PARAM_STR);
+	$stmt->bindParam(3, $foto , PDO::PARAM_STR);
+	$stmt->bindParam(4, $id , PDO::PARAM_STR);
+	$stmt->execute();
+	$count = $stmt->rowCount();
+	$resultVeiculo = $stmt->fetchAll(PDO::FETCH_OBJ);
+	
+
+	if ($count == 1) {
+		$email = $auth["token"]->data->user_email;
+		$senha = $auth["token"]->data->user_senha;
+		$newData = login($email, $senha);
+
+		if ($newData['status'] == 200 && $newData['message'] == 'SUCCESS') {
+			unset($newData['status']);
+			unset($newData['message']);
+			$res = array(
+				'status' => 200, 
+				'message' => "SUCCESS", 
+				'result' => 'Dados cadastrados com sucesso!',
+				'gerais' => $newData
+			);
+			return $response->withJson($res, $res[status]);
+			die;		
+		}else{
+
+			$res = array('status' => 401, 'message' => 'Acesso não autorizado');
+			return $response->withJson($res, $res[status]);
+			die;
+
+		}
+
+
+	} elseif ($count == 0) {
+		# code...
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível inserir o veículo, tente novamente!');
+		return $response->withJson($res, 200);
 		die;
 	}
 
