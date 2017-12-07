@@ -40,10 +40,12 @@ $app->post('/usuario/login', function(Request $request, Response $response, $arg
 		return $response->withJson($auth, $auth[status]);
 		die;
 	}*/
+
 	
 	$email = trim($data["user_email"]);
 	$senha = trim($data["user_senha"]);
 
+	
 	if ($email == "") {
 		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'E-mail não informado!');
 		return $response->withJson($res, $res[status]);
@@ -253,7 +255,6 @@ $app->post('/veiculo/cadastro', function(Request $request, Response $response, $
 	$modelo = trim($data["veic_modelo"]);
 	$foto = trim($data["veic_foto"]);
 
-
 	$placa = str_replace('-', '' , $placa);
 
 	if ($placa == "") {
@@ -272,13 +273,206 @@ $app->post('/veiculo/cadastro', function(Request $request, Response $response, $
 		die;	
 	}
 
-	$sql = "INSERT INTO veiculos (veic_placa, veic_modelo, veic_foto, user_id)
-			VALUES (?, ?, ?, ?)";
+	if (isset($data["veic_id"]) && !empty($data["veic_id"])) {
+
+		$sql = "UPDATE veiculos
+			SET  veic_placa = ?,
+				 veic_modelo = ?,
+				 veic_foto = ?,
+				 user_id = ?
+			WHERE veic_id = ?";
+		$stmt = getConn()->prepare($sql);
+		$stmt->bindParam(1, $placa , PDO::PARAM_STR);
+		$stmt->bindParam(2, $modelo , PDO::PARAM_STR);
+		$stmt->bindParam(3, $foto , PDO::PARAM_STR);
+		$stmt->bindParam(4, $id , PDO::PARAM_STR);
+		$stmt->bindParam(5, $data["veic_id"] , PDO::PARAM_STR);
+		$stmt->execute();
+		$count = $stmt->rowCount();
+		$msg = "Dados atualizados com sucesso!";
+
+	}else{
+
+		$sql = "INSERT INTO veiculos (veic_placa, veic_modelo, veic_foto, user_id)
+				VALUES (?, ?, ?, ?)";
+		$stmt = getConn()->prepare($sql);
+		$stmt->bindParam(1, $placa , PDO::PARAM_STR);
+		$stmt->bindParam(2, $modelo , PDO::PARAM_STR);
+		$stmt->bindParam(3, $foto , PDO::PARAM_STR);
+		$stmt->bindParam(4, $id , PDO::PARAM_STR);
+		$stmt->execute();
+		$count = $stmt->rowCount();
+		$msg = "Dados cadastrados com sucesso!";
+
+
+	}
+
+	if ($count == 1) {
+		$email = $auth["token"]->data->user_email;
+		$senha = $auth["token"]->data->user_senha;
+		$newData = login($email, $senha);
+
+		if ($newData['status'] == 200 && $newData['message'] == 'SUCCESS') {
+			unset($newData['status']);
+			unset($newData['message']);
+			$res = array(
+				'status' => 200, 
+				'message' => "SUCCESS", 
+				'result' => $msg,
+				'gerais' => $newData
+			);
+			return $response->withJson($res, $res[status]);
+			die;		
+		}else{
+
+			$res = array('status' => 401, 'message' => 'Acesso não autorizado');
+			return $response->withJson($res, $res[status]);
+			die;
+
+		}
+
+
+	} elseif ($count == 0) {
+		# code...
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível inserir o veículo, tente novamente!');
+		return $response->withJson($res, 200);
+		die;
+	}
+
+});
+
+
+$app->post('/visitante/consulta', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+	if($auth[status] != 200){
+		return $response->withJson($auth, $auth[status]);
+		die;
+	}
+
+	$cpf = trim($data["visitante_cpf"]);
+
+	if ($cpf == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'CPF não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$cpf = str_replace('-', '' , $cpf);
+	$cpf = str_replace('.', '' , $cpf);
+
+	$sql = "SELECT * FROM visitantes WHERE visitante_cpf = ? LIMIT 1;";
 	$stmt = getConn()->prepare($sql);
-	$stmt->bindParam(1, $placa , PDO::PARAM_STR);
-	$stmt->bindParam(2, $modelo , PDO::PARAM_STR);
-	$stmt->bindParam(3, $foto , PDO::PARAM_STR);
-	$stmt->bindParam(4, $id , PDO::PARAM_STR);
+	$stmt->bindParam(1, $cpf , PDO::PARAM_STR);
+	$stmt->execute();
+	$count = $stmt->rowCount();
+	$resultVisitante = $stmt->fetchAll(PDO::FETCH_OBJ);
+	
+
+	if ($count == 1) {
+		$email = $auth["token"]->data->user_email;
+		$senha = $auth["token"]->data->user_senha;
+		$newData = login($email, $senha);
+
+		if ($newData['status'] == 200 && $newData['message'] == 'SUCCESS') {
+			unset($newData['status']);
+			unset($newData['message']);
+			$res = array(
+				'status' => 200, 
+				'message' => "SUCCESS", 
+				'veiculo' => $resultVisitante[0],
+				'gerais' => $newData
+			);
+			return $response->withJson($res, $res[status]);
+			die;		
+		}else{
+
+			$res = array('status' => 401, 'message' => 'Acesso não autorizado');
+			return $response->withJson($res, $res[status]);
+			die;
+
+		}
+
+
+	} elseif ($count == 0) {
+		# code...
+		$res = array('status' => 204, 'message' => "NOTFOUND", 'result' => 'Não foi encontrado um visitante com este CPF!');
+		return $response->withJson($res, 200);
+		die;
+	}
+
+});
+
+
+$app->post('/visitante/cadastro', function(Request $request, Response $response, $args) {
+	$data = $request->getParsedBody();
+	$auth = auth($request);
+	if($auth[status] != 200){
+		return $response->withJson($auth, $auth[status]);
+		die;
+	}
+
+	$nome = trim($data["visitante_nome"]);
+	$cpf = trim($data["visitante_cpf"]);
+	$rg = trim($data["visitante_rg"]);
+	$data = trim($data["visitante_data_nasc"]);
+	$foto_face = trim($data["visitante_foto_face"]);
+	$foto_doc = trim($data["visitante_foto_doc"]);
+	$user_id = trim($auth["token"]->data->user_id);
+
+
+	$placa = str_replace('-', '' , $placa);
+
+	if ($nome == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Nome não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($cpf == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'CPF não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if (!validaCPF($cpf)) {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'CPF inválido!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($rg == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'RG não informado!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($data == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Foto não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($foto_face == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Foto do visitante não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+	if ($foto_doc == "") {
+		$res = array('status' => 400, 'message' => "INVALID", 'result' => 'Foto do Documento não informada!');
+		return $response->withJson($res, $res[status]);
+		die;	
+	}
+
+	$data = explode("/", $data);
+	$dataNascimento = $data[2]."-".$data[1]."-".$data[0];
+
+	$sql = "INSERT INTO visitantes (visitante_nome, visitante_cpf, visitante_rg, visitante_data_nasc, 
+									visitante_foto_face, visitante_foto_doc, user_id)
+			VALUES (?, ?, ?, ?, ?, ?, ?)";
+	$stmt = getConn()->prepare($sql);
+	$stmt->bindParam(1, $nome , PDO::PARAM_STR);
+	$stmt->bindParam(2, $cpf , PDO::PARAM_STR);
+	$stmt->bindParam(3, $rg , PDO::PARAM_STR);
+	$stmt->bindParam(4, $dataNascimento , PDO::PARAM_STR);
+	$stmt->bindParam(5, $foto_face , PDO::PARAM_STR);
+	$stmt->bindParam(6, $foto_doc , PDO::PARAM_STR);
+	$stmt->bindParam(7, $user_id , PDO::PARAM_STR);
 	$stmt->execute();
 	$count = $stmt->rowCount();
 	$resultVeiculo = $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -308,10 +502,9 @@ $app->post('/veiculo/cadastro', function(Request $request, Response $response, $
 
 		}
 
-
 	} elseif ($count == 0) {
 		# code...
-		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível inserir o veículo, tente novamente!');
+		$res = array('status' => 500, 'message' => "ERROR", 'result' => 'Não foi possível inserir o visitante, tente novamente!');
 		return $response->withJson($res, 200);
 		die;
 	}
@@ -442,7 +635,6 @@ function login($email, $senha) {
 	return $res;
 }
 
-
 function auth($request) {
 	$authorization = $request->getHeaderLine("Authorization");
 	
@@ -458,14 +650,11 @@ function auth($request) {
 	}
 }
 
-
 function getConn() {
 	
 	return new PDO('mysql:host=localhost;dbname=u230569690_ser01', 'u230569690_serv', 'RO~Ng$5]jy', array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));		
 	//return new PDO('mysql:host=localhost;dbname=recifesi_homemarket', 'recifesi_homemarket', 'voanubo2016', array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"));		
 }
-
-
 
 function luhn_check($number) {
 	
@@ -531,6 +720,53 @@ function mask($val, $mask){
 	  }
 	}
 	return $maskared;
+}
+
+function validaCPF($cpf = null) {
+    
+       // Verifica se um número foi informado
+       if(empty($cpf)) {
+           return false;
+       }
+    
+       // Elimina possivel mascara
+       $cpf = ereg_replace('[^0-9]', '', $cpf);
+       $cpf = str_pad($cpf, 11, '0', STR_PAD_LEFT);
+        
+       // Verifica se o numero de digitos informados é igual a 11 
+       if (strlen($cpf) != 11) {
+           return false;
+       }
+       // Verifica se nenhuma das sequências invalidas abaixo 
+       // foi digitada. Caso afirmativo, retorna falso
+       else if ($cpf == '00000000000' || 
+           $cpf == '11111111111' || 
+           $cpf == '22222222222' || 
+           $cpf == '33333333333' || 
+           $cpf == '44444444444' || 
+           $cpf == '55555555555' || 
+           $cpf == '66666666666' || 
+           $cpf == '77777777777' || 
+           $cpf == '88888888888' || 
+           $cpf == '99999999999') {
+           return false;
+        // Calcula os digitos verificadores para verificar se o
+        // CPF é válido
+        } else {   
+            
+           for ($t = 9; $t < 11; $t++) {
+                
+               for ($d = 0, $c = 0; $c < $t; $c++) {
+                   $d += $cpf{$c} * (($t + 1) - $c);
+               }
+               $d = ((10 * $d) % 11) % 10;
+               if ($cpf{$c} != $d) {
+                   return false;
+               }
+           }
+    
+           return true;
+       }
 }
 
 
